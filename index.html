@@ -1,0 +1,365 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rank the seating options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;450;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f1821;
+    --ink-soft: #454f5b;
+    --ink-faint: #6b7682;
+    --page: #eaedf0;
+    --card: #ffffff;
+    --rule: #ccd3da;
+    --rule-strong: #96a0aa;
+    --party: #125644;
+    --party-fill: #17705a;
+    --other: #dde2e7;
+    --other-line: #bcc4cc;
+    --accept-bg: #e4f2e9;
+    --accept-line: #2f7d52;
+    --accept-ink: #1c4d32;
+    --pay-bg: #fbeed6;
+    --pay-line: #b5791a;
+    --pay-ink: #6d4508;
+    --no-bg: #fae3e3;
+    --no-line: #b34141;
+    --no-ink: #74211f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 700px; margin: 0 auto; padding: 48px 20px 80px; }
+
+  h1 { font-size: 25px; font-weight: 450; margin: 0 0 16px; letter-spacing: -0.015em; line-height: 1.28; }
+  .intro { color: var(--ink-soft); margin: 0 0 10px; }
+  .intro:last-of-type { margin-bottom: 34px; }
+
+  #list { display: flex; flex-direction: column; gap: 7px; }
+
+  .row {
+    background: var(--card); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 13px 15px; display: flex; align-items: center; gap: 16px;
+    cursor: grab; touch-action: none;
+  }
+  .row:hover { border-color: var(--rule-strong); }
+  .row:active { cursor: grabbing; }
+  .row.lifted { opacity: 0.35; }
+  .row:focus-visible, .divider:focus-visible { outline: 3px solid var(--party); outline-offset: 2px; }
+
+  .grip {
+    width: 14px; flex: none; color: var(--ink-faint); font-size: 16px;
+    line-height: 1; user-select: none;
+  }
+  .map { flex: none; display: flex; flex-direction: column; gap: 3px; }
+  .seatrow { display: grid; grid-template-columns: repeat(3, 18px) 12px repeat(3, 18px); gap: 3px; }
+  .seat { height: 18px; border-radius: 2px; background: var(--other); border: 1px solid var(--other-line); }
+  .seat.p { background: var(--party-fill); border-color: var(--party); }
+  .brk { height: 9px; display: flex; align-items: center; }
+  .brk span { flex: 1; border-top: 1px dashed var(--rule-strong); }
+
+  .label { flex: 1; min-width: 0; }
+  .label .name { font-size: 15.5px; font-weight: 500; }
+  .label .hint { font-size: 14px; color: var(--ink-soft); }
+
+  .nudge { display: flex; flex-direction: column; gap: 4px; flex: none; }
+  .nudge button {
+    width: 30px; height: 23px; border: 1px solid var(--rule-strong); background: var(--card);
+    border-radius: 4px; color: var(--ink-soft); cursor: pointer; font-size: 10px;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .nudge button:hover { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .nudge button:focus-visible { outline: 3px solid var(--party); outline-offset: 2px; }
+
+  .divider {
+    border: 2px solid; border-radius: 6px;
+    padding: 12px 15px; display: flex; align-items: center; gap: 16px;
+    cursor: grab; touch-action: none; font-size: 15px;
+  }
+  .divider:active { cursor: grabbing; }
+  .divider.lifted { opacity: 0.35; }
+  .divider .grip { color: inherit; opacity: 0.65; }
+  .divider.d1 { background: var(--pay-bg); border-color: var(--pay-line); color: var(--pay-ink); }
+  .divider.d2 { background: var(--no-bg); border-color: var(--no-line); color: var(--no-ink); }
+  .divider .dtext { flex: 1; }
+  .divider .dtext strong { font-weight: 500; }
+  .divider .nudge button { border-color: currentColor; color: inherit; background: transparent; }
+  .divider .nudge button:hover { background: currentColor; color: var(--card); }
+
+  .actions { display: flex; gap: 10px; margin-top: 30px; flex-wrap: wrap; }
+  .actions button {
+    font-family: inherit; font-size: 15px; padding: 10px 18px; border-radius: 6px;
+    border: 1px solid var(--rule-strong); background: var(--card); color: var(--ink); cursor: pointer;
+  }
+  .actions button:hover { border-color: var(--ink); }
+  .actions button:focus-visible { outline: 3px solid var(--party); outline-offset: 2px; }
+  .actions button.primary { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .actions button.primary:hover { background: #22303d; }
+
+  #result {
+    margin-top: 30px; padding: 22px; background: var(--card);
+    border: 1px solid var(--rule); border-radius: 6px;
+  }
+  #result h2 { font-size: 15.5px; font-weight: 500; margin: 0 0 16px; }
+  .band { margin-bottom: 18px; padding-left: 13px; border-left: 4px solid; }
+  .band:last-of-type { margin-bottom: 0; }
+  .band.b0 { border-color: var(--accept-line); }
+  .band.b1 { border-color: var(--pay-line); }
+  .band.b2 { border-color: var(--no-line); }
+  .band h3 { font-size: 14px; font-weight: 500; margin: 0 0 4px; }
+  .band.b0 h3 { color: var(--accept-ink); }
+  .band.b1 h3 { color: var(--pay-ink); }
+  .band.b2 h3 { color: var(--no-ink); }
+  .band ol, .band p { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .band ol { padding-left: 21px; }
+  .said { font-size: 14px; color: var(--accept-ink); margin-top: 18px; min-height: 21px; font-weight: 500; }
+
+  @media (max-width: 580px) {
+    .wrap { padding: 32px 14px 64px; }
+    h1 { font-size: 22px; }
+    .row, .divider { gap: 12px; padding: 11px; }
+    .nudge { display: none; }
+  }
+</style>
+
+<div class="wrap">
+  <h1>Rank these options from least bad to worst</h1>
+  <p class="intro">You have booked a return flight for yourself, your partner and your child. The tickets are already paid for. At the seat selection step, sitting all three of you in a row is not available.</p>
+  <p class="intro">Drag the options to rank them, with the one you would prefer at the top. Then move the two coloured lines to wherever feels right to you.</p>
+
+  <div id="list"></div>
+
+  <div class="actions">
+    <button class="primary" id="copy" type="button">Copy result</button>
+    <button id="shuffle" type="button">Start over</button>
+  </div>
+
+  <div id="result">
+    <h2>Result</h2>
+    <div id="out"></div>
+    <div class="said" id="said" role="status"></div>
+  </div>
+</div>
+
+<script>
+const SETS = [
+  { id: "S1", name: "Block of three, same side", hint: "All three in a row with nobody in between",
+    rows: ["......", "PPP...", "......"] },
+  { id: "S2", name: "Block of three, split by the aisle", hint: "Two together, one just across the aisle",
+    rows: ["......", ".PPP..", "......"] },
+  { id: "S3", name: "Two together, one at the far end of the row", hint: "Same row, with strangers in between",
+    rows: ["......", "PP...P", "......"] },
+  { id: "S4", name: "Two together, one in the next row", hint: "One row apart",
+    rows: ["......", "PP....", "P....."] },
+  { id: "S5", name: "Two together, one several rows away", hint: "No contact during the flight",
+    rows: ["PP....", "~", "...P.."] },
+  { id: "S6", name: "All three apart, close by", hint: "Nobody beside anyone, but within sight",
+    rows: ["P.....", "..P...", "....P."] },
+  { id: "S7", name: "All three apart and scattered", hint: "In different parts of the aircraft",
+    rows: ["P.....", "~", "....P.", "~", ".P...."] }
+];
+
+const DIVIDERS = [
+  { id: "D1", cls: "d1", text: "<strong>Above:</strong> I would accept this and move on without paying" },
+  { id: "D2", cls: "d2", text: "<strong>Below:</strong> I would not accept this, I would pay or look for another flight" }
+];
+
+const BANDS = [
+  { cls: "b0", title: "Accept and move on without paying" },
+  { cls: "b1", title: "Acceptable, but I would pay to improve it" },
+  { cls: "b2", title: "Would not accept" }
+];
+
+const list = document.getElementById("list");
+const out = document.getElementById("out");
+const said = document.getElementById("said");
+
+function mapEl(rows) {
+  const m = document.createElement("div");
+  m.className = "map";
+  for (const r of rows) {
+    if (r === "~") {
+      const b = document.createElement("div");
+      b.className = "brk";
+      b.append(document.createElement("span"));
+      m.append(b);
+      continue;
+    }
+    const sr = document.createElement("div");
+    sr.className = "seatrow";
+    for (let i = 0; i < 6; i++) {
+      if (i === 3) sr.append(document.createElement("div"));
+      const s = document.createElement("div");
+      s.className = "seat" + (r[i] === "P" ? " p" : "");
+      sr.append(s);
+    }
+    m.append(sr);
+  }
+  return m;
+}
+
+function nudgeEl() {
+  const n = document.createElement("div");
+  n.className = "nudge";
+  const up = document.createElement("button");
+  up.type = "button"; up.textContent = "\u25B2"; up.setAttribute("aria-label", "Move up");
+  up.addEventListener("click", e => { move(e.currentTarget.closest(".row, .divider"), -1); });
+  const dn = document.createElement("button");
+  dn.type = "button"; dn.textContent = "\u25BC"; dn.setAttribute("aria-label", "Move down");
+  dn.addEventListener("click", e => { move(e.currentTarget.closest(".row, .divider"), 1); });
+  n.append(up, dn);
+  return n;
+}
+
+function move(el, dir) {
+  if (!el) return;
+  if (dir < 0 && el.previousElementSibling) list.insertBefore(el, el.previousElementSibling);
+  if (dir > 0 && el.nextElementSibling) list.insertBefore(el.nextElementSibling, el);
+  update();
+}
+
+function setRow(cfg) {
+  const r = document.createElement("div");
+  r.className = "row";
+  r.draggable = true;
+  r.tabIndex = 0;
+  r.dataset.id = cfg.id;
+  const g = document.createElement("div");
+  g.className = "grip"; g.textContent = "\u2807"; g.setAttribute("aria-hidden", "true");
+  const lab = document.createElement("div");
+  lab.className = "label";
+  const nm = document.createElement("div"); nm.className = "name"; nm.textContent = cfg.name;
+  const ht = document.createElement("div"); ht.className = "hint"; ht.textContent = cfg.hint;
+  lab.append(nm, ht);
+  r.append(g, mapEl(cfg.rows), lab, nudgeEl());
+  return r;
+}
+
+function dividerRow(d) {
+  const r = document.createElement("div");
+  r.className = "divider " + d.cls;
+  r.draggable = true;
+  r.tabIndex = 0;
+  r.dataset.divider = d.id;
+  const g = document.createElement("div");
+  g.className = "grip"; g.textContent = "\u2807"; g.setAttribute("aria-hidden", "true");
+  const t = document.createElement("div");
+  t.className = "dtext"; t.innerHTML = d.text;
+  r.append(g, t, nudgeEl());
+  return r;
+}
+
+let dragging = null;
+
+list.addEventListener("dragstart", e => {
+  const el = e.target.closest(".row, .divider");
+  if (!el) return;
+  dragging = el;
+  el.classList.add("lifted");
+  e.dataTransfer.effectAllowed = "move";
+  try { e.dataTransfer.setData("text/plain", el.dataset.id || el.dataset.divider); } catch (err) {}
+});
+
+list.addEventListener("dragover", e => {
+  if (!dragging) return;
+  e.preventDefault();
+  const over = e.target.closest(".row, .divider");
+  if (!over || over === dragging) return;
+  const box = over.getBoundingClientRect();
+  const after = e.clientY > box.top + box.height / 2;
+  list.insertBefore(dragging, after ? over.nextElementSibling : over);
+});
+
+list.addEventListener("drop", e => e.preventDefault());
+
+list.addEventListener("dragend", () => {
+  if (dragging) dragging.classList.remove("lifted");
+  dragging = null;
+  update();
+});
+
+list.addEventListener("keydown", e => {
+  const el = e.target.closest(".row, .divider");
+  if (!el) return;
+  if (e.key === "ArrowUp") { e.preventDefault(); move(el, -1); el.focus(); }
+  if (e.key === "ArrowDown") { e.preventDefault(); move(el, 1); el.focus(); }
+});
+
+function render() {
+  list.textContent = "";
+  const shuffled = SETS.slice();
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  const nodes = shuffled.map(setRow);
+  nodes.splice(2, 0, dividerRow(DIVIDERS[0]));
+  nodes.splice(6, 0, dividerRow(DIVIDERS[1]));
+  for (const n of nodes) list.append(n);
+  update();
+}
+
+function readState() {
+  const bands = [[], [], []];
+  let band = 0;
+  for (const el of list.children) {
+    if (el.dataset.divider === "D1") { band = Math.max(band, 1); continue; }
+    if (el.dataset.divider === "D2") { band = 2; continue; }
+    const cfg = SETS.find(s => s.id === el.dataset.id);
+    if (cfg) bands[band].push(cfg);
+  }
+  return bands;
+}
+
+function update() {
+  const bands = readState();
+  out.textContent = "";
+  bands.forEach((items, i) => {
+    const d = document.createElement("div");
+    d.className = "band " + BANDS[i].cls;
+    const h = document.createElement("h3");
+    h.textContent = BANDS[i].title;
+    d.append(h);
+    if (items.length) {
+      const ol = document.createElement("ol");
+      for (const c of items) {
+        const li = document.createElement("li");
+        li.textContent = c.name;
+        ol.append(li);
+      }
+      d.append(ol);
+    } else {
+      const p = document.createElement("p");
+      p.textContent = "Nothing in this band";
+      d.append(p);
+    }
+    out.append(d);
+  });
+  said.textContent = "";
+}
+
+function plainText() {
+  const bands = readState();
+  return bands.map((items, i) =>
+    BANDS[i].title + "\n" +
+    (items.length ? items.map((c, n) => "  " + (n + 1) + ". " + c.name).join("\n") : "  (nothing)")
+  ).join("\n\n");
+}
+
+document.getElementById("shuffle").addEventListener("click", render);
+
+document.getElementById("copy").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(plainText());
+    said.textContent = "Result copied to clipboard.";
+  } catch (err) {
+    said.textContent = "Could not copy. Select the result above and copy it manually.";
+  }
+});
+
+render();
+</script>
