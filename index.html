@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rank the seating options</title>
+<title>Choosing your seats</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;450;500&display=swap" rel="stylesheet">
@@ -127,9 +127,11 @@
 </style>
 
 <div class="wrap">
-  <h1>Rank these options from least bad to worst</h1>
-  <p class="intro">You have booked a return flight for yourself, your partner and your child. The tickets are already paid for. At the seat selection step, sitting all three of you in a row is not available.</p>
-  <p class="intro">Drag the options to rank them, with the one you would prefer at the top. Then move the two coloured lines to wherever feels right to you.</p>
+  <h1>Choosing your seats</h1>
+  <p class="intro">It's late June. You're booking August flights from Madrid to Rome with your partner and child. You're in the middle of the booking process and now need to choose your seats.</p>
+  <p class="intro"><strong>What to do</strong></p>
+  <p class="intro">Rank the options from the one you'd mind least to the one you'd mind most. Then use the two lines to show your boundaries.</p>
+  <p class="intro">Please think aloud as you go. Say whatever comes to mind while you move things around, even if it feels obvious or unfinished. How you get there matters more to us than where you end up.</p>
 
   <div id="list"></div>
 
@@ -164,14 +166,14 @@ const SETS = [
 ];
 
 const DIVIDERS = [
-  { id: "D1", cls: "d1", text: "<strong>Above:</strong> I would accept this and move on without paying" },
-  { id: "D2", cls: "d2", text: "<strong>Below:</strong> I would not accept this, I would pay or look for another flight" }
+  { id: "D1", cls: "d1", text: "<strong>Above:</strong> I'd accept this" },
+  { id: "D2", cls: "d2", text: "<strong>Below:</strong> I wouldn't accept this" }
 ];
 
 const BANDS = [
-  { cls: "b0", title: "Accept and move on without paying" },
-  { cls: "b1", title: "Acceptable, but I would pay to improve it" },
-  { cls: "b2", title: "Would not accept" }
+  { cls: "b0", title: "I'd accept this" },
+  { cls: "b1", title: "Not ideal, but I'd live with it" },
+  { cls: "b2", title: "I wouldn't accept this" }
 ];
 
 const list = document.getElementById("list");
