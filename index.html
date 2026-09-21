@@ -33,7 +33,7 @@
     font-family: "IBM Plex Sans", system-ui, sans-serif;
     font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 700px; margin: 0 auto; padding: 44px 20px 80px; }
+  .wrap { max-width: 700px; margin: 0 auto; padding: 44px 20px 40px; }
   [hidden] { display: none !important; }
 
   h1 { font-size: 25px; font-weight: 450; margin: 0 0 16px; letter-spacing: -0.015em; line-height: 1.28; }
@@ -44,9 +44,12 @@
 
   .row {
     background: var(--card); border: 1px solid var(--rule); border-radius: 6px;
-    padding: 13px 15px; display: flex; align-items: center; gap: 16px;
+    padding: 13px 15px 13px 21px; display: flex; align-items: center; gap: 16px;
     cursor: grab; touch-action: none;
   }
+  .row.b0 { box-shadow: inset 6px 0 0 var(--ok-line); }
+  .row.b1 { box-shadow: inset 6px 0 0 var(--pay-line); }
+  .row.b2 { box-shadow: inset 6px 0 0 var(--no-line); }
   .row:hover { border-color: var(--rule-strong); }
   .row:active { cursor: grabbing; }
   .row.lifted { opacity: 0.35; }
@@ -81,12 +84,19 @@
   .divider:active { cursor: grabbing; }
   .divider.lifted { opacity: 0.35; }
   .divider .grip { color: inherit; opacity: 0.65; }
-  .divider.d1 { background: var(--pay-bg); border-color: var(--pay-line); color: var(--pay-ink); }
+  .divider.d1 { background: var(--ok-bg); border-color: var(--ok-line); color: var(--ok-ink); }
   .divider.d2 { background: var(--no-bg); border-color: var(--no-line); color: var(--no-ink); }
   .divider .dtext { flex: 1; }
   .divider .dtext strong { font-weight: 500; }
   .divider .nudge button { border-color: currentColor; color: inherit; background: transparent; }
   .divider .nudge button:hover { background: currentColor; color: var(--card); }
+
+  .midlabel {
+    pointer-events: none;
+    font-size: 13.5px; font-weight: 500;
+    color: var(--pay-ink);
+    text-align: center; padding: 5px 0;
+  }
 
   #actions { margin-top: 30px; }
   .btn-primary {
@@ -144,7 +154,7 @@
 
 <div class="wrap">
   <h1>Choosing your seats</h1>
-  <p class="intro">It's late June. You're booking August flights from Madrid to Rome with your partner and child. You're in the middle of the booking process and now need to choose your seats.</p>
+  <p class="intro" id="scenario"></p>
   <p class="intro"><strong>What to do</strong></p>
   <p class="intro">Rank the options from the one you'd mind least to the one you'd mind most. Then use the two lines to show your boundaries.</p>
   <p class="intro" id="aloud" hidden>Please think aloud as you go. Say whatever comes to mind while you move things around, even if it feels obvious or unfinished. How you get there matters more to us than where you end up.</p>
@@ -162,13 +172,13 @@
 
   <div id="done" hidden>
     <h2>Thank you</h2>
-    <p>Your answer has been recorded. If the next question asks for a code, this is it.</p>
+    <p id="donetext">Your answer has been recorded. If the next question asks for a code, this is it.</p>
     <div class="codebox" id="code"></div>
-    <div class="subrow">
+    <div class="subrow" id="codeactions">
       <button class="btn-quiet" id="copycode" type="button">Copy code</button>
     </div>
     <div class="said" id="said" role="status"></div>
-    <div id="summary">
+    <div id="summary" hidden>
       <h3>What you submitted</h3>
       <div id="out"></div>
     </div>
@@ -183,25 +193,68 @@
 const ENDPOINT = "";
 
 const CATEGORIES = {
+
+  // --- Two adults and one child -----------------------------------------
   "2a1c": {
-    scenario: "It's late June. You're booking August flights from Madrid to Rome with your partner and child. You're in the middle of the booking process and now need to choose your seats.",
+    scenario: "It's late June. You're booking August flights from Madrid to Rome with your partner and your child. You're in the middle of the booking process and now need to choose your seats.",
     sets: [
-      { id: "S1", name: "Block of three, same side", hint: "All three in a row with nobody in between",
+      { id: "A1", name: "Block of three, same side", hint: "All three in a row with nobody in between",
         rows: ["......", "PPP...", "......"] },
-      { id: "S2", name: "Block of three, split by the aisle", hint: "Two together, one just across the aisle",
+      { id: "A2", name: "Block of three, split by the aisle", hint: "Two together, one just across the aisle",
         rows: ["......", ".PPP..", "......"] },
-      { id: "S3", name: "Two together, one at the far end of the row", hint: "Same row, with strangers in between",
+      { id: "A3", name: "Two together, one at the far end of the row", hint: "Same row, with strangers in between",
         rows: ["......", "PP...P", "......"] },
-      { id: "S4", name: "Two together, one in the next row", hint: "One row apart",
+      { id: "A4", name: "Two together, one in the next row", hint: "One row apart",
         rows: ["......", "PP....", "P....."] },
-      { id: "S5", name: "Two together, one several rows away", hint: "No contact during the flight",
+      { id: "A5", name: "Two together, one several rows away", hint: "No contact during the flight",
         rows: ["PP....", "~", "...P.."] },
-      { id: "S6", name: "All three apart, close by", hint: "Nobody beside anyone, but within sight",
+      { id: "A6", name: "All three apart, close by", hint: "Nobody beside anyone, but within sight",
         rows: ["P.....", "..P...", "....P."] },
-      { id: "S7", name: "All three apart and scattered", hint: "In different parts of the aircraft",
+      { id: "A7", name: "All three apart and scattered", hint: "In different parts of the aircraft",
         rows: ["P.....", "~", "....P.", "~", ".P...."] }
     ]
+  },
+
+  // --- Two adults and two children --------------------------------------
+  "2a2c": {
+    scenario: "It's late June. You're booking August flights from Madrid to Rome with your partner and your two children. You're in the middle of the booking process and now need to choose your seats.",
+    sets: [
+      { id: "B1", name: "Three together, one across the aisle", hint: "Nobody more than a seat away",
+        rows: ["......", "PPPP..", "......"] },
+      { id: "B2", name: "Two and two, either side of the aisle", hint: "Both pairs within reach",
+        rows: ["......", ".PPPP.", "......"] },
+      { id: "B3", name: "Two and two, one pair behind the other", hint: "A block of four across two rows",
+        rows: ["......", "PP....", "PP...."] },
+      { id: "B4", name: "Two and two, opposite ends of the row", hint: "Same row, with strangers in between",
+        rows: ["......", "PP..PP", "......"] },
+      { id: "B5", name: "Two and two, several rows apart", hint: "The pairs cannot reach each other",
+        rows: ["PP....", "~", "...PP."] },
+      { id: "B6", name: "Three together, one several rows away", hint: "One of you travels alone",
+        rows: ["PPP...", "~", "....P."] },
+      { id: "B7", name: "Two together, the other two apart", hint: "Two of you sit beside strangers",
+        rows: ["......", "PP.P.P", "......"] },
+      { id: "B8", name: "All four apart and scattered", hint: "In different parts of the aircraft",
+        rows: ["P.....", "~", "..P..P", "~", ".P...."] }
+    ]
+  },
+
+  // --- One adult and one child ------------------------------------------
+  "1a1c": {
+    scenario: "It's late June. You're booking August flights from Madrid to Rome with your child, just the two of you. You're in the middle of the booking process and now need to choose your seats.",
+    sets: [
+      { id: "C1", name: "Side by side", hint: "Next to each other, nobody in between",
+        rows: ["......", "PP....", "......"] },
+      { id: "C2", name: "Across the aisle from each other", hint: "Same row, with the aisle in between",
+        rows: ["......", "..PP..", "......"] },
+      { id: "C3", name: "Same row, opposite ends", hint: "Strangers sitting between you",
+        rows: ["......", "P....P", "......"] },
+      { id: "C4", name: "One directly behind the other", hint: "Same column, one row apart",
+        rows: ["......", "P.....", "P....."] },
+      { id: "C5", name: "Several rows apart", hint: "No contact during the flight",
+        rows: ["P.....", "~", "...P.."] }
+    ]
   }
+
 };
 
 const DIVIDERS = [
@@ -219,8 +272,10 @@ const params = new URLSearchParams(window.location.search);
 const TOKEN = params.get("token") || "";
 const CATEGORY = params.get("category") || "2a1c";
 const MODERATED = params.get("mode") === "moderated";
-const CONFIG = CATEGORIES[CATEGORY] || CATEGORIES["2a1c"];
+const SET_USED = CATEGORIES[CATEGORY] ? CATEGORY : "2a1c";
+const CONFIG = CATEGORIES[SET_USED];
 const SETS = CONFIG.sets;
+document.getElementById("scenario").textContent = CONFIG.scenario;
 
 const START = Date.now();
 let interacted = false;
@@ -275,16 +330,59 @@ function nudgeEl() {
   return n;
 }
 
+var midLabel = document.createElement("div");
+midLabel.className = "midlabel";
+midLabel.textContent = "Not ideal, but I'd live with it";
+
+// Keep the caption sitting between the two lines, and hide it when the
+// middle band is empty so it never labels nothing.
+function positionMidLabel() {
+  if (midLabel.parentNode) midLabel.parentNode.removeChild(midLabel);
+  var d1 = list.querySelector('[data-divider="D1"]');
+  var d2 = list.querySelector('[data-divider="D2"]');
+  if (!d1 || !d2) return;
+  var after = d1.compareDocumentPosition(d2) & Node.DOCUMENT_POSITION_FOLLOWING;
+  if (!after) return;
+  if (d1.nextElementSibling === d2) return;
+  list.insertBefore(midLabel, d1.nextElementSibling);
+}
+
+// Tint each option with the colour of the band it currently sits in.
+function applyBands() {
+  var band = 0;
+  var kids = list.children;
+  for (var i = 0; i < kids.length; i++) {
+    var el = kids[i];
+    if (el.dataset.divider === "D1") { band = Math.max(band, 1); continue; }
+    if (el.dataset.divider === "D2") { band = 2; continue; }
+    if (el.classList.contains("midlabel")) continue;
+    el.classList.remove("b0", "b1", "b2");
+    el.classList.add("b" + band);
+  }
+}
+
+function sibling(el, dir) {
+  var n = dir < 0 ? el.previousElementSibling : el.nextElementSibling;
+  while (n && n.classList.contains("midlabel")) {
+    n = dir < 0 ? n.previousElementSibling : n.nextElementSibling;
+  }
+  return n;
+}
+
 function move(el, dir) {
   if (!el || submitted) return;
-  if (dir < 0 && el.previousElementSibling) list.insertBefore(el, el.previousElementSibling);
-  if (dir > 0 && el.nextElementSibling) list.insertBefore(el.nextElementSibling, el);
+  var target = sibling(el, dir);
+  if (!target) return;
+  if (dir < 0) list.insertBefore(el, target);
+  else list.insertBefore(target, el);
   touch();
 }
 
 function touch() {
   interacted = true;
   warn.textContent = "";
+  positionMidLabel();
+  applyBands();
 }
 
 function setRow(cfg) {
@@ -338,6 +436,7 @@ list.addEventListener("dragover", e => {
   const box = over.getBoundingClientRect();
   const after = e.clientY > box.top + box.height / 2;
   list.insertBefore(dragging, after ? over.nextElementSibling : over);
+  applyBands();
 });
 
 list.addEventListener("drop", e => e.preventDefault());
@@ -366,6 +465,8 @@ function render() {
   nodes.splice(2, 0, dividerRow(DIVIDERS[0]));
   nodes.splice(6, 0, dividerRow(DIVIDERS[1]));
   for (const n of nodes) list.append(n);
+  positionMidLabel();
+  applyBands();
   interacted = false;
   warned = false;
   warn.textContent = "";
@@ -447,6 +548,7 @@ document.getElementById("submit").addEventListener("click", () => {
   send({
     token: TOKEN,
     category: CATEGORY,
+    setUsed: SET_USED,
     code: code,
     accept: bands[0].map(c => c.id),
     middle: bands[1].map(c => c.id),
@@ -466,6 +568,7 @@ document.getElementById("submit").addEventListener("click", () => {
         seatingGameResult: {
           token: TOKEN,
           category: CATEGORY,
+          setUsed: SET_USED,
           code: code,
           accept: bands[0].map(c => c.id).join(" "),
           middle: bands[1].map(c => c.id).join(" "),
@@ -478,7 +581,16 @@ document.getElementById("submit").addEventListener("click", () => {
   }
 
   document.getElementById("code").textContent = code;
-  renderSummary(bands);
+  if (window.parent !== window && !MODERATED) {
+    document.getElementById("code").hidden = true;
+    document.getElementById("codeactions").hidden = true;
+    document.getElementById("summary").hidden = true;
+    document.getElementById("donetext").textContent =
+      "Your answer has been recorded. Please press Continue below to carry on.";
+  } else {
+    document.getElementById("summary").hidden = false;
+    renderSummary(bands);
+  }
   document.getElementById("list").hidden = true;
   document.getElementById("actions").hidden = true;
   document.getElementById("done").hidden = false;
@@ -505,22 +617,26 @@ document.getElementById("shuffle").addEventListener("click", () => {
   if (!submitted) render();
 });
 
-// Report our height to the parent page so an embedding iframe can grow to fit.
+// Report our height to the parent page so an embedding iframe fits us.
+// Measure the content wrapper, not the document: inside a tall iframe the
+// document stretches to fill the frame, so it could never shrink back.
+var lastReported = 0;
 function reportHeight() {
   if (window.parent === window) return;
-  var h = Math.max(
-    document.documentElement.scrollHeight,
-    document.body ? document.body.scrollHeight : 0
-  );
+  var wrap = document.querySelector(".wrap");
+  if (!wrap) return;
+  var h = Math.ceil(wrap.getBoundingClientRect().height) + 8;
+  if (Math.abs(h - lastReported) < 4) return;
+  lastReported = h;
   try { window.parent.postMessage({ seatingGameHeight: h }, "*"); } catch (err) {}
 }
 
 window.addEventListener("load", reportHeight);
 window.addEventListener("resize", reportHeight);
 if (window.ResizeObserver) {
-  new ResizeObserver(reportHeight).observe(document.documentElement);
+  new ResizeObserver(reportHeight).observe(document.querySelector(".wrap"));
 }
-setInterval(reportHeight, 1000);
+setInterval(reportHeight, 400);
 
 render();
 reportHeight();
