@@ -591,6 +591,10 @@ document.getElementById("submit").addEventListener("click", () => {
     document.getElementById("summary").hidden = false;
     renderSummary(bands);
   }
+  // The task is over, so the brief and the instructions are just noise.
+  var intro = document.querySelectorAll("h1, .intro");
+  for (var k = 0; k < intro.length; k++) intro[k].hidden = true;
+
   document.getElementById("list").hidden = true;
   document.getElementById("actions").hidden = true;
   document.getElementById("done").hidden = false;
