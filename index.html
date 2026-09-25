@@ -46,7 +46,7 @@
     position: relative; overflow: hidden;
     background: var(--card); border: 1px solid var(--rule); border-radius: 6px;
     padding: 13px 15px 13px 21px; display: flex; align-items: center; gap: 14px;
-    cursor: default; touch-action: none;
+    cursor: default; touch-action: pan-y;
     user-select: none; -webkit-user-select: none; -ms-user-select: none;
     -webkit-touch-callout: none;
     transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
@@ -94,6 +94,26 @@
   }
   .handle:active { cursor: grabbing; }
 
+  /* Shown when a finger rests on a row: this is the bit to grab. */
+  @keyframes handlePulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.22); }
+  }
+  .hinting .grip {
+    color: var(--party-fill);
+    background: var(--ok-bg);
+    animation: handlePulse 0.75s ease-in-out infinite;
+  }
+  .hinting .stepper { border-color: var(--party-fill); }
+  .hinting .handle::after {
+    content: "Drag from here";
+    font-size: 12.5px; font-weight: 500; color: var(--party-fill);
+    white-space: nowrap;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hinting .grip { animation: none; }
+  }
+
   .grip {
     flex: none; width: 26px; height: 30px; border-radius: 4px;
     display: flex; align-items: center; justify-content: center;
@@ -118,7 +138,7 @@
   .divider {
     border: 2px solid; border-radius: 6px;
     padding: 12px 15px; display: flex; align-items: center; gap: 16px;
-    cursor: default; touch-action: none; font-size: 15px;
+    cursor: default; touch-action: pan-y; font-size: 15px;
     user-select: none; -webkit-user-select: none; -ms-user-select: none;
     -webkit-touch-callout: none;
   }
@@ -206,7 +226,7 @@
   <p class="intro" id="scenario"></p>
   <p class="intro"><strong>What to do</strong></p>
   <p class="intro">Rank the options from the one you'd mind least to the one you'd mind most. Then use the two lines to show your boundaries.</p>
-  <p class="intro" id="draghint">Press and hold anywhere on a row to pick it up, then drag it. On a computer you can drag straight away.</p>
+  <p class="intro" id="draghint">To move a row, drag it by the handle on its left.</p>
   <p class="intro" id="aloud" hidden>Please think aloud as you go. Say whatever comes to mind while you move things around, even if it feels obvious or unfinished. How you get there matters more to us than where you end up.</p>
 
   <div class="anchor top" id="anchortop">The most ideal</div>
@@ -493,17 +513,6 @@ function draggableUnder(target) {
   return target && target.closest ? target.closest(".row, .divider") : null;
 }
 
-// Scroll the page by hand. When embedded, the iframe is as tall as its
-// content and cannot scroll, so the outer page has to do it for us.
-function scrollPage(dy) {
-  if (!dy) return;
-  if (window.parent !== window) {
-    try { window.parent.postMessage({ seatingGameScrollBy: dy }, "*"); } catch (err) {}
-  } else {
-    window.scrollBy(0, dy);
-  }
-}
-
 // A finger resting on a row for a moment means "pick this up". A finger
 // that slides straight away means "scroll the page". The handle skips the
 // wait, for anyone who already knows where to grab.
@@ -524,6 +533,7 @@ function startDrag(el, pointerId, y) {
 function cancelPending() {
   if (!pending) return;
   clearTimeout(pending.timer);
+  pending.el.classList.remove("hinting");
   pending = null;
 }
 
@@ -540,14 +550,15 @@ list.addEventListener("pointerdown", e => {
     return;
   }
 
-  // Touch, away from the handle: wait and see whether this is a hold or a swipe.
+  // Touch, away from the handle. Dragging here would fight with scrolling,
+  // so instead point them at the handle if the finger lingers.
   pending = {
     el: el, id: e.pointerId, x: e.clientX, y: e.clientY,
-    lastY: e.clientY, scrolling: false,
     timer: setTimeout(() => {
-      const p = pending;
-      pending = null;
-      if (p) startDrag(p.el, p.id, p.y);
+      if (!pending) return;
+      pending.el.classList.add("hinting");
+      pending.hinting = true;
+      if (navigator.vibrate) { try { navigator.vibrate(8); } catch (err) {} }
     }, HOLD_MS)
   };
 });
@@ -611,25 +622,16 @@ window.addEventListener("message", function (event) {
   if (drag) {
     drag.y += d;
     placeAt(drag.y);
-  } else if (pending) {
-    pending.lastY += d;
   }
 });
 
 function onMove(e) {
-  // Still deciding. Real movement means they meant to scroll, so from then
-  // on we move the page ourselves for as long as the finger is down.
+  // A finger resting on a row is asking how to move it. Any real movement
+  // means they were scrolling, so drop the hint and stay out of the way.
   if (pending && e.pointerId === pending.id) {
-    e.preventDefault();
-    if (!pending.scrolling &&
-        (Math.abs(e.clientY - pending.y) > HOLD_SLOP ||
-         Math.abs(e.clientX - pending.x) > HOLD_SLOP)) {
-      clearTimeout(pending.timer);
-      pending.scrolling = true;
-    }
-    if (pending.scrolling) {
-      scrollPage(pending.lastY - e.clientY);
-      pending.lastY = e.clientY;
+    if (Math.abs(e.clientY - pending.y) > HOLD_SLOP ||
+        Math.abs(e.clientX - pending.x) > HOLD_SLOP) {
+      cancelPending();
     }
     return;
   }
@@ -647,7 +649,14 @@ function onMove(e) {
 }
 
 function onUp(e) {
-  cancelPending();
+  if (pending && pending.hinting) {
+    const el = pending.el;
+    clearTimeout(pending.timer);
+    pending = null;
+    setTimeout(() => el.classList.remove("hinting"), 1400);
+  } else {
+    cancelPending();
+  }
   if (!drag) return;
   clearInterval(drag.timer);
   drag.el.classList.remove("dragging");
