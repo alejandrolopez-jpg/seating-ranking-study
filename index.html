@@ -46,7 +46,7 @@
     position: relative; overflow: hidden;
     background: var(--card); border: 1px solid var(--rule); border-radius: 6px;
     padding: 13px 15px 13px 21px; display: flex; align-items: center; gap: 14px;
-    cursor: grab; touch-action: none;
+    cursor: default; touch-action: pan-y;
     user-select: none; -webkit-user-select: none; -ms-user-select: none;
     -webkit-touch-callout: none;
     transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
@@ -63,7 +63,6 @@
     transform: translateY(-1px);
     box-shadow: 0 3px 10px rgba(15, 24, 33, 0.10);
   }
-  .row:active { cursor: grabbing; }
   .row.dragging, .divider.dragging {
     cursor: grabbing;
     box-shadow: 0 10px 26px rgba(15, 24, 33, 0.22);
@@ -86,13 +85,23 @@
   .row.lifted { opacity: 0.35; }
   .row:focus-visible, .divider:focus-visible { outline: 3px solid var(--party); outline-offset: 2px; }
 
+  /* The only part that grabs a touch. Everything else scrolls normally. */
+  .handle {
+    align-self: stretch; flex: none;
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 10px 0 0; margin-left: -4px;
+    touch-action: none; cursor: grab;
+  }
+  .handle:active { cursor: grabbing; }
+
   .grip {
-    flex: none; width: 24px; height: 28px; border-radius: 4px;
+    flex: none; width: 26px; height: 30px; border-radius: 4px;
     display: flex; align-items: center; justify-content: center;
     color: var(--rule-strong); font-size: 18px; line-height: 1;
     user-select: none; transition: color 0.12s ease, background 0.12s ease;
   }
   .row:hover .grip, .divider:hover .grip { color: var(--ink); background: var(--page); }
+  .handle:hover .grip { color: var(--ink); }
   .divider:hover .grip { background: rgba(255,255,255,0.45); }
   .map { flex: none; display: flex; flex-direction: column; gap: 3px; }
   .seatrow { display: grid; grid-template-columns: repeat(3, 18px) 12px repeat(3, 18px); gap: 3px; }
@@ -109,7 +118,7 @@
   .divider {
     border: 2px solid; border-radius: 6px;
     padding: 12px 15px; display: flex; align-items: center; gap: 16px;
-    cursor: grab; touch-action: none; font-size: 15px;
+    cursor: default; touch-action: pan-y; font-size: 15px;
     user-select: none; -webkit-user-select: none; -ms-user-select: none;
     -webkit-touch-callout: none;
   }
@@ -197,7 +206,7 @@
   <p class="intro" id="scenario"></p>
   <p class="intro"><strong>What to do</strong></p>
   <p class="intro">Rank the options from the one you'd mind least to the one you'd mind most. Then use the two lines to show your boundaries.</p>
-  <p class="intro" id="draghint">Drag the rows up and down to reorder them.</p>
+  <p class="intro" id="draghint">Drag the handle on the left of each row to move it up or down.</p>
   <p class="intro" id="aloud" hidden>Please think aloud as you go. Say whatever comes to mind while you move things around, even if it feels obvious or unfinished. How you get there matters more to us than where you end up.</p>
 
   <div class="anchor top" id="anchortop">The most ideal</div>
@@ -448,12 +457,15 @@ function setRow(cfg) {
   const g = document.createElement("div");
   g.className = "grip"; g.textContent = "\u283F"; g.setAttribute("aria-hidden", "true");
   const st = stepperEl(true);
+  const handle = document.createElement("div");
+  handle.className = "handle";
+  handle.append(g, st);
   const lab = document.createElement("div");
   lab.className = "label";
   const nm = document.createElement("div"); nm.className = "name"; nm.textContent = cfg.name;
   const ht = document.createElement("div"); ht.className = "hint"; ht.textContent = cfg.hint;
   lab.append(nm, ht);
-  r.append(g, st, mapEl(cfg.rows), lab);
+  r.append(handle, mapEl(cfg.rows), lab);
   return r;
 }
 
@@ -466,7 +478,10 @@ function dividerRow(d) {
   g.className = "grip"; g.textContent = "\u283F"; g.setAttribute("aria-hidden", "true");
   const t = document.createElement("div");
   t.className = "dtext"; t.innerHTML = d.text;
-  r.append(g, stepperEl(false), t);
+  const handle = document.createElement("div");
+  handle.className = "handle";
+  handle.append(g, stepperEl(false));
+  r.append(handle, t);
   return r;
 }
 
@@ -482,6 +497,12 @@ list.addEventListener("pointerdown", e => {
   if (submitted || e.button > 0) return;
   const el = draggableUnder(e.target);
   if (!el) return;
+
+  // On a touch screen, only the handle starts a drag. Anywhere else on the
+  // row the finger should scroll the page as usual.
+  const onHandle = !!(e.target.closest && e.target.closest(".handle"));
+  if (e.pointerType !== "mouse" && !onHandle) return;
+
   // Stop the browser from starting a text selection as the pointer moves.
   e.preventDefault();
   try { el.setPointerCapture(e.pointerId); } catch (err) {}
