@@ -43,19 +43,57 @@
   #list { display: flex; flex-direction: column; gap: 7px; }
 
   .row {
+    position: relative; overflow: hidden;
     background: var(--card); border: 1px solid var(--rule); border-radius: 6px;
-    padding: 13px 15px 13px 21px; display: flex; align-items: center; gap: 16px;
+    padding: 13px 15px 13px 21px; display: flex; align-items: center; gap: 14px;
     cursor: grab; touch-action: none;
+    user-select: none; -webkit-user-select: none; -ms-user-select: none;
+    -webkit-touch-callout: none;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
   }
-  .row.b0 { box-shadow: inset 6px 0 0 var(--ok-line); }
-  .row.b1 { box-shadow: inset 6px 0 0 var(--pay-line); }
-  .row.b2 { box-shadow: inset 6px 0 0 var(--no-line); }
-  .row:hover { border-color: var(--rule-strong); }
+  .row::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
+    background: transparent;
+  }
+  .row.b0::before { background: var(--ok-line); }
+  .row.b1::before { background: var(--pay-line); }
+  .row.b2::before { background: var(--no-line); }
+  .row:hover {
+    border-color: var(--rule-strong);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(15, 24, 33, 0.10);
+  }
   .row:active { cursor: grabbing; }
+  .row.dragging, .divider.dragging {
+    cursor: grabbing;
+    box-shadow: 0 10px 26px rgba(15, 24, 33, 0.22);
+    transform: scale(1.015);
+    z-index: 3;
+  }
+  #list.active .row:not(.dragging), #list.active .divider:not(.dragging) { opacity: 0.6; }
+
+  .stepper {
+    flex: none; display: flex; align-items: center; justify-content: center;
+    min-width: 26px; height: 26px;
+    border: 1px solid var(--rule-strong); border-radius: 5px;
+    background: var(--card);
+  }
+  .stepper .num {
+    font-family: "IBM Plex Mono", monospace; font-size: 14px; font-weight: 500;
+    color: var(--ink);
+  }
+  .divider .stepper { background: transparent; border-color: currentColor; }
   .row.lifted { opacity: 0.35; }
   .row:focus-visible, .divider:focus-visible { outline: 3px solid var(--party); outline-offset: 2px; }
 
-  .grip { width: 14px; flex: none; color: var(--ink-faint); font-size: 16px; line-height: 1; user-select: none; }
+  .grip {
+    flex: none; width: 24px; height: 28px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--rule-strong); font-size: 18px; line-height: 1;
+    user-select: none; transition: color 0.12s ease, background 0.12s ease;
+  }
+  .row:hover .grip, .divider:hover .grip { color: var(--ink); background: var(--page); }
+  .divider:hover .grip { background: rgba(255,255,255,0.45); }
   .map { flex: none; display: flex; flex-direction: column; gap: 3px; }
   .seatrow { display: grid; grid-template-columns: repeat(3, 18px) 12px repeat(3, 18px); gap: 3px; }
   .seat { height: 18px; border-radius: 2px; background: var(--other); border: 1px solid var(--other-line); }
@@ -67,19 +105,13 @@
   .label .name { font-size: 15.5px; font-weight: 500; }
   .label .hint { font-size: 14px; color: var(--ink-soft); }
 
-  .nudge { display: flex; flex-direction: column; gap: 4px; flex: none; }
-  .nudge button {
-    width: 30px; height: 23px; border: 1px solid var(--rule-strong); background: var(--card);
-    border-radius: 4px; color: var(--ink-soft); cursor: pointer; font-size: 10px;
-    display: flex; align-items: center; justify-content: center; padding: 0;
-  }
-  .nudge button:hover { background: var(--ink); border-color: var(--ink); color: #fff; }
-  .nudge button:focus-visible { outline: 3px solid var(--party); outline-offset: 2px; }
 
   .divider {
     border: 2px solid; border-radius: 6px;
     padding: 12px 15px; display: flex; align-items: center; gap: 16px;
     cursor: grab; touch-action: none; font-size: 15px;
+    user-select: none; -webkit-user-select: none; -ms-user-select: none;
+    -webkit-touch-callout: none;
   }
   .divider:active { cursor: grabbing; }
   .divider.lifted { opacity: 0.35; }
@@ -88,8 +120,16 @@
   .divider.d2 { background: var(--no-bg); border-color: var(--no-line); color: var(--no-ink); }
   .divider .dtext { flex: 1; }
   .divider .dtext strong { font-weight: 500; }
-  .divider .nudge button { border-color: currentColor; color: inherit; background: transparent; }
-  .divider .nudge button:hover { background: currentColor; color: var(--card); }
+
+  .anchor {
+    font-size: 13.5px; font-weight: 500; letter-spacing: 0.01em;
+    padding: 7px 4px; display: flex; align-items: center; gap: 8px;
+  }
+  .anchor::before { content: ""; }
+  .anchor.top { color: var(--ok-ink); }
+  .anchor.bottom { color: var(--no-ink); }
+  .anchor.top::before { content: "\2191"; font-size: 15px; }
+  .anchor.bottom::before { content: "\2193"; font-size: 15px; }
 
   .midlabel {
     pointer-events: none;
@@ -146,7 +186,7 @@
   @media (max-width: 580px) {
     .wrap { padding: 30px 14px 64px; }
     h1 { font-size: 22px; }
-    .row, .divider { gap: 12px; padding: 11px; }
+    .row, .divider { gap: 10px; padding: 11px 11px 11px 17px; }
     .label .name { font-size: 15px; }
     .codebox { font-size: 16px; }
   }
@@ -157,9 +197,12 @@
   <p class="intro" id="scenario"></p>
   <p class="intro"><strong>What to do</strong></p>
   <p class="intro">Rank the options from the one you'd mind least to the one you'd mind most. Then use the two lines to show your boundaries.</p>
+  <p class="intro" id="draghint">Drag the rows up and down to reorder them.</p>
   <p class="intro" id="aloud" hidden>Please think aloud as you go. Say whatever comes to mind while you move things around, even if it feels obvious or unfinished. How you get there matters more to us than where you end up.</p>
 
+  <div class="anchor top" id="anchortop">The most ideal</div>
   <div id="list"></div>
+  <div class="anchor bottom" id="anchorbottom">The least ideal</div>
 
   <div id="actions">
     <button class="btn-primary" id="submit" type="button">Submit my answer</button>
@@ -230,11 +273,7 @@ const CATEGORIES = {
       { id: "B5", name: "Two and two, several rows apart", hint: "The pairs cannot reach each other",
         rows: ["PP....", "~", "...PP."] },
       { id: "B6", name: "Three together, one several rows away", hint: "One of you travels alone",
-        rows: ["PPP...", "~", "....P."] },
-      { id: "B7", name: "Two together, the other two apart", hint: "Two of you sit beside strangers",
-        rows: ["......", "PP.P.P", "......"] },
-      { id: "B8", name: "All four apart and scattered", hint: "In different parts of the aircraft",
-        rows: ["P.....", "~", "..P..P", "~", ".P...."] }
+        rows: ["PPP...", "~", "....P."] }
     ]
   },
 
@@ -272,6 +311,7 @@ const params = new URLSearchParams(window.location.search);
 const TOKEN = params.get("token") || "";
 const CATEGORY = params.get("category") || "2a1c";
 const MODERATED = params.get("mode") === "moderated";
+const DEBUG = params.get("debug") === "1";
 const SET_USED = CATEGORIES[CATEGORY] ? CATEGORY : "2a1c";
 const CONFIG = CATEGORIES[SET_USED];
 const SETS = CONFIG.sets;
@@ -289,7 +329,8 @@ const said = document.getElementById("said");
 
 if (MODERATED) {
   document.getElementById("aloud").hidden = false;
-  document.getElementById("submit").hidden = true;
+}
+if (DEBUG) {
   document.getElementById("copy").hidden = false;
 }
 
@@ -317,17 +358,18 @@ function mapEl(rows) {
   return m;
 }
 
-function nudgeEl() {
-  const n = document.createElement("div");
-  n.className = "nudge";
-  const up = document.createElement("button");
-  up.type = "button"; up.textContent = "\u25B2"; up.setAttribute("aria-label", "Move up");
-  up.addEventListener("click", e => move(e.currentTarget.closest(".row, .divider"), -1));
-  const dn = document.createElement("button");
-  dn.type = "button"; dn.textContent = "\u25BC"; dn.setAttribute("aria-label", "Move down");
-  dn.addEventListener("click", e => move(e.currentTarget.closest(".row, .divider"), 1));
-  n.append(up, dn);
-  return n;
+function stepperEl(withNumber) {
+  const st = document.createElement("div");
+  st.className = "stepper";
+  if (withNumber) {
+    const num = document.createElement("div");
+    num.className = "num";
+    st.append(num);
+  } else {
+    st.textContent = "\u2261";
+    st.style.color = "inherit";
+  }
+  return st;
 }
 
 var midLabel = document.createElement("div");
@@ -359,6 +401,19 @@ function applyBands() {
     el.classList.remove("b0", "b1", "b2");
     el.classList.add("b" + band);
   }
+  numberRows();
+}
+
+// Show each option's current position, so the order is readable at a glance.
+function numberRows() {
+  var n = 0;
+  var kids = list.children;
+  for (var i = 0; i < kids.length; i++) {
+    var rk = kids[i].querySelector ? kids[i].querySelector(".stepper .num") : null;
+    if (!rk) continue;
+    n++;
+    rk.textContent = n;
+  }
 }
 
 function sibling(el, dir) {
@@ -388,64 +443,137 @@ function touch() {
 function setRow(cfg) {
   const r = document.createElement("div");
   r.className = "row";
-  r.draggable = true;
   r.tabIndex = 0;
   r.dataset.id = cfg.id;
   const g = document.createElement("div");
-  g.className = "grip"; g.textContent = "\u2807"; g.setAttribute("aria-hidden", "true");
+  g.className = "grip"; g.textContent = "\u283F"; g.setAttribute("aria-hidden", "true");
+  const st = stepperEl(true);
   const lab = document.createElement("div");
   lab.className = "label";
   const nm = document.createElement("div"); nm.className = "name"; nm.textContent = cfg.name;
   const ht = document.createElement("div"); ht.className = "hint"; ht.textContent = cfg.hint;
   lab.append(nm, ht);
-  r.append(g, mapEl(cfg.rows), lab, nudgeEl());
+  r.append(g, st, mapEl(cfg.rows), lab);
   return r;
 }
 
 function dividerRow(d) {
   const r = document.createElement("div");
   r.className = "divider " + d.cls;
-  r.draggable = true;
   r.tabIndex = 0;
   r.dataset.divider = d.id;
   const g = document.createElement("div");
-  g.className = "grip"; g.textContent = "\u2807"; g.setAttribute("aria-hidden", "true");
+  g.className = "grip"; g.textContent = "\u283F"; g.setAttribute("aria-hidden", "true");
   const t = document.createElement("div");
   t.className = "dtext"; t.innerHTML = d.text;
-  r.append(g, t, nudgeEl());
+  r.append(g, stepperEl(false), t);
   return r;
 }
 
-let dragging = null;
+// Dragging is done with pointer events rather than the browser's native
+// drag and drop, because the native one does not work on touch screens.
+let drag = null;
 
-list.addEventListener("dragstart", e => {
-  if (submitted) { e.preventDefault(); return; }
-  const el = e.target.closest(".row, .divider");
+function draggableUnder(target) {
+  return target && target.closest ? target.closest(".row, .divider") : null;
+}
+
+list.addEventListener("pointerdown", e => {
+  if (submitted || e.button > 0) return;
+  const el = draggableUnder(e.target);
   if (!el) return;
-  dragging = el;
-  el.classList.add("lifted");
-  e.dataTransfer.effectAllowed = "move";
-  try { e.dataTransfer.setData("text/plain", el.dataset.id || el.dataset.divider); } catch (err) {}
-});
-
-list.addEventListener("dragover", e => {
-  if (!dragging) return;
+  // Stop the browser from starting a text selection as the pointer moves.
   e.preventDefault();
-  const over = e.target.closest(".row, .divider");
-  if (!over || over === dragging) return;
-  const box = over.getBoundingClientRect();
-  const after = e.clientY > box.top + box.height / 2;
-  list.insertBefore(dragging, after ? over.nextElementSibling : over);
+  try { el.setPointerCapture(e.pointerId); } catch (err) {}
+  try { el.focus({ preventScroll: true }); } catch (err) { el.focus(); }
+  drag = { el: el, id: e.pointerId, moved: false, y: e.clientY };
+  el.classList.add("dragging");
+  list.classList.add("active");
+  drag.timer = setInterval(autoScrollStep, 16);
+});
+
+// Work out where the dragged row belongs for a given pointer position.
+function placeAt(y) {
+  if (!drag) return;
+  const kids = list.children;
+  for (let i = 0; i < kids.length; i++) {
+    const k = kids[i];
+    if (k === drag.el) continue;
+    if (!k.classList.contains("row") && !k.classList.contains("divider")) continue;
+    const b = k.getBoundingClientRect();
+    if (y >= b.top && y <= b.bottom) {
+      const after = y > b.top + b.height / 2;
+      list.insertBefore(drag.el, after ? k.nextElementSibling : k);
+      break;
+    }
+  }
   applyBands();
+}
+
+// Scroll the page while the pointer is held near the top or bottom edge, so a
+// row can be carried past the edge of the screen without letting go.
+const EDGE = 110;
+const SELF_SCROLLS = () => document.documentElement.scrollHeight > window.innerHeight + 4;
+
+function autoScrollStep() {
+  if (!drag) return;
+
+  if (window.parent !== window) {
+    // Embedded: the outer page is the one that scrolls, and only it knows
+    // where the visible edges are. Tell it where the pointer is.
+    try { window.parent.postMessage({ seatingGameDragY: drag.y }, "*"); } catch (err) {}
+    return;
+  }
+
+  if (!SELF_SCROLLS()) return;
+  const h = window.innerHeight;
+  let d = 0;
+  if (drag.y < EDGE) d = -Math.ceil((EDGE - drag.y) / 5);
+  else if (drag.y > h - EDGE) d = Math.ceil((drag.y - (h - EDGE)) / 5);
+  if (!d) return;
+  window.scrollBy(0, d);
+  placeAt(drag.y);
+}
+
+// The outer page scrolled on our behalf, so the pointer now sits over a
+// different part of our content even though it has not moved.
+window.addEventListener("message", function (event) {
+  const d = event.data && event.data.seatingGameScrolled;
+  if (!d || !drag) return;
+  drag.y += d;
+  placeAt(drag.y);
 });
 
-list.addEventListener("drop", e => e.preventDefault());
+function onMove(e) {
+  if (!drag || e.pointerId !== drag.id) return;
+  e.preventDefault();
+  drag.moved = true;
 
-list.addEventListener("dragend", () => {
-  if (dragging) dragging.classList.remove("lifted");
-  dragging = null;
-  touch();
-});
+  // Clear anything the browser may already have highlighted.
+  const sel = window.getSelection && window.getSelection();
+  if (sel && !sel.isCollapsed) sel.removeAllRanges();
+
+  drag.y = e.clientY;
+  placeAt(drag.y);
+}
+
+function onUp(e) {
+  if (!drag) return;
+  clearInterval(drag.timer);
+  drag.el.classList.remove("dragging");
+  list.classList.remove("active");
+  try { drag.el.releasePointerCapture(drag.id); } catch (err) {}
+  if (window.parent !== window) {
+    try { window.parent.postMessage({ seatingGameDragEnd: true }, "*"); } catch (err) {}
+  }
+  const moved = drag.moved;
+  drag = null;
+  if (moved) touch();
+}
+
+document.addEventListener("pointermove", onMove, { passive: false });
+document.addEventListener("pointerup", onUp);
+document.addEventListener("pointercancel", onUp);
 
 list.addEventListener("keydown", e => {
   const el = e.target.closest(".row, .divider");
@@ -581,17 +709,23 @@ document.getElementById("submit").addEventListener("click", () => {
   }
 
   document.getElementById("code").textContent = code;
-  if (window.parent !== window && !MODERATED) {
+
+  // The code and the summary are only ever useful for checking the build,
+  // so they stay hidden unless ?debug=1 is on the URL.
+  if (DEBUG) {
+    document.getElementById("summary").hidden = false;
+    renderSummary(bands);
+  } else {
     document.getElementById("code").hidden = true;
     document.getElementById("codeactions").hidden = true;
     document.getElementById("summary").hidden = true;
     document.getElementById("donetext").textContent =
       "Your answer has been recorded. Please press Continue below to carry on.";
-  } else {
-    document.getElementById("summary").hidden = false;
-    renderSummary(bands);
   }
   // The task is over, so the brief and the instructions are just noise.
+  var anchors = document.querySelectorAll(".anchor");
+  for (var a = 0; a < anchors.length; a++) anchors[a].hidden = true;
+
   var intro = document.querySelectorAll("h1, .intro");
   for (var k = 0; k < intro.length; k++) intro[k].hidden = true;
 
@@ -633,6 +767,12 @@ function reportHeight() {
   if (Math.abs(h - lastReported) < 4) return;
   lastReported = h;
   try { window.parent.postMessage({ seatingGameHeight: h }, "*"); } catch (err) {}
+}
+
+// Announce a fresh start, so the embedding page can discard any result
+// left over from a previous visit on this same browser tab.
+if (window.parent !== window) {
+  try { window.parent.postMessage({ seatingGameStarted: true }, "*"); } catch (err) {}
 }
 
 window.addEventListener("load", reportHeight);
