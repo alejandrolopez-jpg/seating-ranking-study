@@ -43,7 +43,7 @@
   #list { display: flex; flex-direction: column; gap: 7px; }
 
   .row {
-    position: relative; overflow: hidden;
+    position: relative;
     background: var(--card); border: 1px solid var(--rule); border-radius: 6px;
     padding: 13px 15px 13px 21px; display: flex; align-items: center; gap: 14px;
     cursor: default; touch-action: pan-y;
@@ -53,7 +53,7 @@
   }
   .row::before {
     content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
-    background: transparent;
+    background: transparent; border-radius: 6px 0 0 6px;
   }
   .row.b0::before { background: var(--ok-line); }
   .row.b1::before { background: var(--pay-line); }
@@ -100,16 +100,17 @@
     50%      { transform: scale(1.22); }
   }
   .hinting .grip {
-    color: var(--party-fill);
-    background: var(--ok-bg);
+    color: #fff;
+    background: var(--party-fill);
+    box-shadow: 0 0 0 4px var(--ok-bg);
     animation: handlePulse 0.75s ease-in-out infinite;
   }
-  .hinting .stepper { border-color: var(--party-fill); }
-  .hinting .handle::after {
-    content: "Drag from here";
-    font-size: 12.5px; font-weight: 500; color: var(--party-fill);
-    white-space: nowrap;
+  .hinting .stepper {
+    border-color: var(--party-fill);
+    background: var(--ok-bg);
   }
+  .hinting .stepper .num { color: var(--party); }
+  .hinting::before { background: var(--party-fill) !important; }
   @media (prefers-reduced-motion: reduce) {
     .hinting .grip { animation: none; }
   }
@@ -136,6 +137,7 @@
 
 
   .divider {
+    position: relative;
     border: 2px solid; border-radius: 6px;
     padding: 12px 15px; display: flex; align-items: center; gap: 16px;
     cursor: default; touch-action: pan-y; font-size: 15px;
