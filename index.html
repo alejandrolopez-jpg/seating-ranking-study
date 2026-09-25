@@ -169,6 +169,29 @@
     text-align: center; padding: 5px 0;
   }
 
+  #listwrap { position: relative; }
+  #coach {
+    position: absolute; inset: 0; z-index: 10;
+    background: rgba(15, 24, 33, 0.55);
+    border-radius: 8px;
+    display: flex; justify-content: center;
+    padding-top: 48px;
+  }
+  #coach[hidden] { display: none; }
+  .coachcard {
+    background: var(--card); border-radius: 10px;
+    padding: 22px 24px 20px; max-width: 300px; text-align: center;
+    box-shadow: 0 12px 34px rgba(15, 24, 33, 0.3);
+    height: max-content;
+  }
+  .coachgrip {
+    width: 40px; height: 40px; margin: 0 auto 14px;
+    border-radius: 8px; background: var(--party-fill); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 24px;
+    animation: handlePulse 0.85s ease-in-out infinite;
+  }
+  .coachcard p { margin: 0 0 16px; font-size: 15.5px; line-height: 1.5; }
+
   #actions { margin-top: 30px; }
   .btn-primary {
     font-family: inherit; font-size: 17px; font-weight: 500; padding: 15px 28px;
@@ -217,8 +240,15 @@
   @media (max-width: 580px) {
     .wrap { padding: 30px 14px 64px; }
     h1 { font-size: 22px; }
-    .row, .divider { gap: 10px; padding: 11px 11px 11px 17px; }
+    .row { flex-wrap: wrap; row-gap: 9px; gap: 10px; padding: 12px 12px 12px 17px; }
+    .divider { gap: 10px; padding: 11px 11px 11px 17px; }
+    .handle { order: 1; padding-right: 2px; }
+    .map { order: 2; }
+    .label { order: 3; flex-basis: 100%; }
     .label .name { font-size: 15px; }
+    .label .hint { font-size: 13.5px; }
+    .seatrow { grid-template-columns: repeat(3, 16px) 11px repeat(3, 16px); gap: 3px; }
+    .seat { height: 16px; }
     .codebox { font-size: 16px; }
   }
 </style>
@@ -232,7 +262,16 @@
   <p class="intro" id="aloud" hidden>Please think aloud as you go. Say whatever comes to mind while you move things around, even if it feels obvious or unfinished. How you get there matters more to us than where you end up.</p>
 
   <div class="anchor top" id="anchortop">The most ideal</div>
-  <div id="list"></div>
+  <div id="listwrap">
+    <div id="list"></div>
+    <div id="coach">
+      <div class="coachcard">
+        <div class="coachgrip">&#10303;</div>
+        <p>Use this handle to move a row up or down.</p>
+        <button class="btn-quiet" id="coachok" type="button">Got it</button>
+      </div>
+    </div>
+  </div>
   <div class="anchor bottom" id="anchorbottom">The least ideal</div>
 
   <div id="actions">
@@ -851,6 +890,21 @@ document.getElementById("copy").addEventListener("click", async () => {
     warn.textContent = "";
   } catch (err) {}
 });
+
+const coach = document.getElementById("coach");
+function dismissCoach() {
+  if (coach.hidden) return;
+  coach.hidden = true;
+  try { window.sessionStorage.setItem("seatingCoachSeen", "1"); } catch (e) {}
+  reportHeight();
+}
+document.getElementById("coachok").addEventListener("click", dismissCoach);
+coach.addEventListener("pointerdown", e => {
+  if (e.target.id !== "coachok") dismissCoach();
+});
+try {
+  if (window.sessionStorage.getItem("seatingCoachSeen") === "1") coach.hidden = true;
+} catch (e) {}
 
 document.getElementById("shuffle").addEventListener("click", () => {
   if (!submitted) render();
